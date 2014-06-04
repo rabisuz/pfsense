@@ -392,6 +392,12 @@ if (!$hide_service_status && !empty($shortcuts[$shortcut_section]['service'])) {
 			$ssvc = find_service_by_cp_zone($cpzone);
 			break;
 		default:
+			if (isset($_REQUEST['instance'])) {
+				$ssvc = find_service_by_name_and_instance($shortcuts[$shortcut_section]['service'], $_REQUEST['instance']);
+				break;
+			}
+	
+			// use default otherwise
 			$ssvc = find_service_by_name($shortcuts[$shortcut_section]['service']);
 
 	}
