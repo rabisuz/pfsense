@@ -1660,11 +1660,6 @@ function services_dnsmasq_configure($instanceIndex = null) {
 		
 			$args = "";
 		
-			if (isset($instance['regdhcp'])) {
-				$hostsfile = "hosts" .(isset($instance['regdhcpfilter']) ? ".{$instanceIndex}" : "");
-				$args .= " --dhcp-hostsfile={$g['varetc_path']}/{$hostsfile}";
-			}
-		
 			/* Setup listen port, if non-default */
 			if (is_port($instance['port']))
 				$args .= " --port={$instance['port']}";
@@ -1707,6 +1702,9 @@ function services_dnsmasq_configure($instanceIndex = null) {
 					}
 				}
 				if (!empty($listen_addresses)) {
+					if (isset($instance['regdhcpfilter']))
+						$args .= " --no-hosts --addn-hosts={$g['varetc_path']}/hosts.{$instanceIndex}";
+				
 					$args .= " {$listen_addresses} ";
 					if (isset($instance['strictbind']))
 						$args .= " --bind-interfaces";

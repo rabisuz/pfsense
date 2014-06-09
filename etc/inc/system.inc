@@ -232,10 +232,8 @@ function system_hosts_generate() {
 
 	$syscfg = $config['system'];
 
+	// add localhost and address of first lan interface
 	$hosts = "127.0.0.1	localhost localhost.{$syscfg['domain']}\n";
-	$lhosts = "";
-	$dhosts = "";
-
 	if ($config['interfaces']['lan']) {
 		$cfgip = get_interface_ip("lan");
 		if (is_ipaddr($cfgip))
@@ -260,7 +258,11 @@ function system_hosts_generate() {
 		if (isset($dnsmasqcfg['enable'])) {
 			if (!is_array($dnsmasqcfg['hosts']))
 				$dnsmasqcfg['hosts'] = array();
+				
+			$lhosts = "";
+			$dhosts = "";
 		
+			// hosts overrides configured for instance
 			foreach ($dnsmasqcfg['hosts'] as $host) {
 				if ($host['host'])
 					$lhosts .= "{$host['ip']}	{$host['host']}.{$host['domain']} {$host['host']}\n";
@@ -275,9 +277,11 @@ function system_hosts_generate() {
 						$lhosts .= "{$host['ip']}	{$alias['domain']}\n";
 				}
 			}
+			// static dhcp hosts
+			$iflist = isset($dnsmasqcfg['interface']) && !empty($dnsmasqcfg['interface']) ? explode(",", $dnsmasqcfg['interface']) : NULL;
 			if (isset($dnsmasqcfg['regdhcpstatic']) && is_array($config['dhcpd'])) {
 				foreach ($config['dhcpd'] as $dhcpif => $dhcpifconf)
-					if(is_array($dhcpifconf['staticmap']) && isset($dhcpifconf['enable']))
+					if ((!isset($dnsmasqcfg['regdhcpfilter']) || (empty($iflist) || in_array($dhcpif, $iflist))) && is_array($dhcpifconf['staticmap']) && isset($dhcpifconf['enable']))
 							foreach ($dhcpifconf['staticmap'] as $host)
 								if ($host['ipaddr'] && $host['hostname'] && $host['domain'])
 									$dhosts .= "{$host['ipaddr']}	{$host['hostname']}.{$host['domain']} {$host['hostname']}\n";
@@ -288,7 +292,7 @@ function system_hosts_generate() {
 			}
 			if (isset($dnsmasqcfg['regdhcpstatic']) && is_array($config['dhcpdv6'])) {
 				foreach ($config['dhcpdv6'] as $dhcpif => $dhcpifconf)
-					if(is_array($dhcpifconf['staticmap']) && isset($dhcpifconf['enable']))
+					if ((!isset($dnsmasqcfg['regdhcpfilter']) || (empty($iflist) || in_array($dhcpif, $iflist))) && is_array($dhcpifconf['staticmap']) && isset($dhcpifconf['enable']))
 							foreach ($dhcpifconf['staticmap'] as $host)
 								if ($host['ipaddrv6'] && $host['hostname'] && $host['domain'])
 									$dhosts .= "{$host['ipaddrv6']}	{$host['hostname']}.{$host['domain']} {$host['hostname']}\n";
@@ -297,28 +301,59 @@ function system_hosts_generate() {
 								else if ($host['ipaddrv6'] && $host['hostname'])
 									$dhosts .= "{$host['ipaddrv6']}	{$host['hostname']}.{$syscfg['domain']} {$host['hostname']}\n";
 			}
-		
+			
 			if (isset($dnsmasqcfg['dhcpfirst'])) {
 				$hosts_for_instance = $dhosts . $lhosts;
 			} else {
-				$hosts_for_instances = $lhosts . $dhosts;
+				$hosts_for_instance = $lhosts . $dhosts;
 			}
 
-			if ($multiInstance || $dnsmasqcfg['regdhcpfilter']) {
-				$path = "{$g['varetc_path']}/hosts.{$instanceIndex}";
-				$fd = fopen($path, "w");
-				if (!$fd) {
-					log_error("Error: cannot open hosts file '{$path}' in system_hosts_generate().\n");
+			// build hosts file for instance
+			$hosts_localif = "";
+			$pfInfix = "";
+			if (isset($dnsmasqcfg['regdhcpfilter']) && !empty($iflist)) {
+				$sysiflist = explode(",", $dnsmasqcfg['interface']);
+				// XXX: is this always lo0?
+				if (in_array("lo0", $sysiflist))
+					$hosts_localif .= "127.0.0.1	localhost localhost.{$syscfg['domain']}\n";
+				
+				foreach ($sysiflist as $sysif) {
+					if (!interface_has_gateway($sysif)) {
+						$cfgip = get_interface_ip($sysif);
+						if (is_ipaddr($cfgip)) {
+							$hosts_localif .= "{$cfgip}	{$syscfg['hostname']}.{$syscfg['domain']} {$syscfg['hostname']}\n";
+						}
+					}
 				}
-				fwrite($fd, $hosts_for_instance);
-				fclose($fd);
+				
+				$pfInfix = ".{$instanceIndex}";
+			} elseif (!isset($dnsmasqcfg['regdhcpfilter'])) {
+				$hosts_localif = $hosts;
 			}
-
-			$hosts .= $hosts_for_instance;
+		
+			/*
+			 * Do not remove this because dhcpleases monitors with kqueue it needs to be 
+			 * killed before writing to hosts files.
+			 */
+			$pidfile = "{$g['varrun_path']}/dhcpleases{$pfInfix}.pid";
+			if (file_exists($pidfile)) {
+				sigkillbypid($pidfile, "TERM");
+				@unlink($pidfile);
+			}
+		
+			$path = "{$g['varetc_path']}/hosts{$pfInfix}";
+			$fd = fopen($path, "w");
+			if (!$fd) {
+				log_error("Error: cannot open hosts file '{$path}' in system_hosts_generate().\n");
+				return 1;
+			}
+			fwrite($fd, $hosts_localif . $hosts_for_instance);
+			fclose($fd);
 		}
+		
 		++$instanceIndex;
 	}
-
+	
 	/*
 	 * Do not remove this because dhcpleases monitors with kqueue it needs to be 
 	 * killed before writing to hosts files.
@@ -327,13 +362,6 @@ function system_hosts_generate() {
 		sigkillbypid($pidfile, "TERM");
 		@unlink($pidfile);
 	}
-	$fd = fopen("{$g['varetc_path']}/hosts", "w");
-	if (!$fd) {
-		log_error("Error: cannot open hosts file in system_hosts_generate().\n");
-		return 1;
-	}
-	fwrite($fd, $hosts);
-	fclose($fd);
 
 	system_dhcpleases_configure();
 
@@ -369,22 +397,25 @@ function system_dhcpleases_configure() {
 			@touch("{$g['dhcpd_chroot_path']}/var/db/dhcpd.leases");
 
 		$instanceIndex = 0;
+		$hasGlobalInstance = false;
 		$a_dnsmasqInstances = dnsmasq_get_configured_instances();
 		$multiInstance = isset($config['dnsmasq']['allow_multi']);
 		foreach ($a_dnsmasqInstances as &$instance) {
 			if (isset($instance['enable']) && isset($instance['regdhcp'])) {
 				$subnets = array();
-				if (isset($instance['regdhcpfilter'])) {
+				if (isset($instance['interface']) && isset($instance['regdhcpfilter'])) {
 					$interfaces = explode(",", $instance['interface']);
 					foreach ($interfaces as $interface) {
 						if (empty($interface))
 							continue;
-						if (is_ipaddrv4($interface)) {
-							// XXX: extract subnet somehow
-							$subnets[] = "{$interface}/8";
-						} else if (is_ipaddrv6($interface)) {
-							// XXX: extract subnet somehow
-							$subnets[] = "{$interface}/48";
+						$is_ipv4 = is_ipaddrv4($interface);
+						if ($is_ipv4 || is_ipaddrv6($interface)) {
+							$mask = $is_ipv4 ? 8 : 48;
+							if ($vif = find_virtual_ip_alias($interface)) {
+								if (isset($vif['subnet_bits']))
+									$mask = $vif['subnet_bits'];
+							}
+							$subnets[] = "{$interface}/{$mask}";
 						} else {
 							$if = get_real_interface($interface);
 							if (does_interface_exist($if)) {
@@ -403,22 +434,47 @@ function system_dhcpleases_configure() {
 					}
 				}
 
-				$pidname = "dnsmasq";
-				if ($multiInstance);
-					$pidname .= '.'.$instanceIndex;
+				if (!empty($subnets) || !$hasGlobalInstance) {
+					$pidname = "dnsmasq";
+					if ($multiInstance)
+						$pidname .= '.'.$instanceIndex;
 
-				$split_cmd = "";
-				if (!empty($subnets)) {
-					$split_cmd = "/etc/inc/split_hosts.php -p {$g['varrun_path']}/{$pidname}.pid -h {$g['varetc_path']}/hosts -o {$g['varetc_path']}/hosts.{$instanceIndex}";
-					$split_cmd .= " -n ". implode(" -n ", $subnets);
-					$split_cmd = "-c '{$split_cmd}'";
+					$hostsfile = "{$g['varetc_path']}/hosts";
+					
+					// XXX: filtering and specifying the pid file needs to be done within dhcpleases itself
+					
+					$split_cmd = "";
+					if (!empty($subnets)) {
+						$hostsfile .= ".{$instanceIndex}";
+						$hostssize = filesize($hostsfile);
+					
+						$split_cmd = "/usr/local/bin/php -q /etc/inc/filter_hosts.php -p {$g['varrun_path']}/{$pidname}.pid -l {$g['dhcpd_chroot_path']}/var/db/dhcpd.leases -d {$config['system']['domain']} -o {$hostsfile} -s {$hostssize}";
+						$split_cmd .= " -n ". implode(" -n ", $subnets);
+						$split_cmd = " -c '{$split_cmd}'";
+					} else {
+						$hasGlobalInstance = true;
+					}
+					
+					$cmd = "/usr/local/sbin/dhcpleases -l {$g['dhcpd_chroot_path']}/var/db/dhcpd.leases -d {$config['system']['domain']} -p {$g['varrun_path']}/{$pidname}.pid -h {$hostsfile}{$split_cmd}";
+					//file_put_contents("/tmp/dhcpleases.log", "cmd ({$instanceIndex}): {$cmd}\n", FILE_APPEND | LOCK_EX);
+					mwexec($cmd);
+					
+					# pid path is hardcoded, move it
+					usleep(50);
+					$pidfile = "{$g['varrun_path']}/dhcpleases";
+					if ($multiInstance && file_exists("{$pidfile}.pid")) {
+						$infix = !empty($subnets) ? ".{$instanceIndex}" : ".global";
+						@rename("{$pidfile}.pid", "{$pidfile}{$infix}.pid");
+					}
 				}
-				
-				$cmd = "/usr/local/sbin/dhcpleases -l {$g['dhcpd_chroot_path']}/var/db/dhcpd.leases -d {$config['system']['domain']} -p {$g['varrun_path']}/{$pidname}.pid -h {$g['varetc_path']}/hosts {$split_cmd}";
-				//file_put_contents("/tmp/dhcpleases.log", "cmd ({$instanceIndex}): {$cmd}\n", FILE_APPEND | LOCK_EX);
-				mwexec($cmd);
 			}
+			
 			++$instanceIndex;
+		}
+		
+		if ($multiInstance && $hasGlobalInstance && file_exists("{$g['varrun_path']}/dhcpleases.global.pid")) {
+			// does not always work..
+			@copy("{$g['varrun_path']}/dhcpleases.global.pid", "{$g['varrun_path']}/dhcpleases.pid");
 		}
 	}
 }
