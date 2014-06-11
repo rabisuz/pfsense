@@ -225,6 +225,8 @@ function get_nameservers() {
 
 function system_hosts_generate() {
 	global $config, $g;
+	require_once("dnsmasq.inc");
+	
 	if(isset($config['system']['developerspew'])) {
 		$mt = microtime();
 		echo "system_hosts_generate() being called $mt\n";
