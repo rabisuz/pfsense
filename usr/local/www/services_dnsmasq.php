@@ -602,25 +602,25 @@ if ($showMultiInstanceOptions): ?>
 	</tr>
 	</tfoot>
 	<tbody>
-	<?php $instanceParam = getInstanceParam('?','&amp;'); $i = 0; foreach ($a_hosts as $hostent): ?>
+	<?php $instanceParam = getInstanceParam('','&amp;'); $i = 0; foreach ($a_hosts as $hostent): ?>
 	<tr>
-		<td class="listlr" ondblclick="document.location='services_dnsmasq_edit.php<?=$instanceParam;?>id=<?=$i;?>';">
+		<td class="listlr" ondblclick="document.location='services_dnsmasq_edit.php?<?=$instanceParam;?>id=<?=$i;?>';">
 			<?=strtolower($hostent['host']);?>&nbsp;
 		</td>
-		<td class="listr" ondblclick="document.location='services_dnsmasq_edit.php<?=$instanceParam;?>id=<?=$i;?>';">
+		<td class="listr" ondblclick="document.location='services_dnsmasq_edit.php?<?=$instanceParam;?>id=<?=$i;?>';">
 			<?=strtolower($hostent['domain']);?>&nbsp;
 		</td>
-		<td class="listr" ondblclick="document.location='services_dnsmasq_edit.php<?=$instanceParam;?>id=<?=$i;?>';">
+		<td class="listr" ondblclick="document.location='services_dnsmasq_edit.php?<?=$instanceParam;?>id=<?=$i;?>';">
 			<?=$hostent['ip'];?>&nbsp;
 		</td>
-		<td class="listbg" ondblclick="document.location='services_dnsmasq_edit.php<?=$instanceParam;?>id=<?=$i;?>';">
+		<td class="listbg" ondblclick="document.location='services_dnsmasq_edit.php?<?=$instanceParam;?>id=<?=$i;?>';">
 			<?=htmlspecialchars($hostent['descr']);?>&nbsp;
 		</td>
 		<td valign="middle" nowrap="nowrap" class="list">
 			<table border="0" cellspacing="0" cellpadding="1">
 				<tr>
-					<td valign="middle"><a href="services_dnsmasq_edit.php<?=$instanceParam;?>id=<?=$i;?>"><img src="./themes/<?= $g['theme']; ?>/images/icons/icon_e.gif" alt="" width="17" height="17" border="0"/></a></td>
-					<td><a href="services_dnsmasq.php<?=$instanceParam;?>type=host&amp;act=del&amp;id=<?=$i;?>" onclick="return confirm('<?=gettext("Do you really want to delete this host?");?>')"><img src="./themes/<?= $g['theme']; ?>/images/icons/icon_x.gif" alt="" width="17" height="17" border="0"/></a></td>
+					<td valign="middle"><a href="services_dnsmasq_edit.php?<?=$instanceParam;?>id=<?=$i;?>"><img src="./themes/<?= $g['theme']; ?>/images/icons/icon_e.gif" alt="" width="17" height="17" border="0"/></a></td>
+					<td><a href="services_dnsmasq.php?<?=$instanceParam;?>type=host&amp;act=del&amp;id=<?=$i;?>" onclick="return confirm('<?=gettext("Do you really want to delete this host?");?>')"><img src="./themes/<?= $g['theme']; ?>/images/icons/icon_x.gif" alt="" width="17" height="17" border="0"/></a></td>
 				</tr>
 			</table>
 		</td>
@@ -628,20 +628,20 @@ if ($showMultiInstanceOptions): ?>
 	<?php if ($hostent['aliases']['item'] && is_array($hostent['aliases']['item'])): ?>
 	<?php foreach ($hostent['aliases']['item'] as $alias): ?>
 	<tr>
-		<td class="listlr" ondblclick="document.location='services_dnsmasq_edit.php<?=$instanceParam;?>id=<?=$i;?>';">
+		<td class="listlr" ondblclick="document.location='services_dnsmasq_edit.php?<?=$instanceParam;?>id=<?=$i;?>';">
 			<?=strtolower($alias['host']);?>&nbsp;
 		</td>
-		<td class="listr" ondblclick="document.location='services_dnsmasq_edit.php<?=$instanceParam;?>id=<?=$i;?>';">
+		<td class="listr" ondblclick="document.location='services_dnsmasq_edit.php?<?=$instanceParam;?>id=<?=$i;?>';">
 			<?=strtolower($alias['domain']);?>&nbsp;
 		</td>
-		<td class="listr" ondblclick="document.location='services_dnsmasq_edit.php<?=$instanceParam;?>id=<?=$i;?>';">
+		<td class="listr" ondblclick="document.location='services_dnsmasq_edit.php?<?=$instanceParam;?>id=<?=$i;?>';">
 			Alias for <?=$hostent['host'] ? $hostent['host'] . '.' . $hostent['domain'] : $hostent['domain'];?>&nbsp;
 		</td>
-		<td class="listbg" ondblclick="document.location='services_dnsmasq_edit.php<?=$instanceParam;?>id=<?=$i;?>';">
+		<td class="listbg" ondblclick="document.location='services_dnsmasq_edit.php?<?=$instanceParam;?>id=<?=$i;?>';">
 			<?=htmlspecialchars($alias['description']);?>&nbsp;
 		</td>
 		<td valign="middle" nowrap="nowrap" class="list">
-			<a href="services_dnsmasq_edit.php<?=$instanceParam;?>id=<?=$i;?>"><img src="./themes/<?= $g['theme']; ?>/images/icons/icon_e.gif" alt="" width="17" height="17" border="0"/></a>
+			<a href="services_dnsmasq_edit.php?<?=$instanceParam;?>id=<?=$i;?>"><img src="./themes/<?= $g['theme']; ?>/images/icons/icon_e.gif" alt="" width="17" height="17" border="0"/></a>
 		</td>
 	</tr>
 	<?php endforeach; ?>
@@ -689,7 +689,7 @@ if ($showMultiInstanceOptions): ?>
 	</tr>
 	</tfoot>
 	<tbody>
-	<?php $instanceParam = getInstanceParam('?','&amp;'); $i = 0; foreach ($a_domainOverrides as $doment): ?>
+	<?php $instanceParam = getInstanceParam('','&amp;'); $i = 0; foreach ($a_domainOverrides as $doment): ?>
 	<tr>
 		<td class="listlr">
 			<?=strtolower($doment['domain']);?>&nbsp;
@@ -700,8 +700,8 @@ if ($showMultiInstanceOptions): ?>
 		<td class="listbg">
 			<?=htmlspecialchars($doment['descr']);?>&nbsp;
 		</td>
-		<td valign="middle" nowrap="nowrap" class="list"> <a href="services_dnsmasq_domainoverride_edit.php<?=$instanceParam;?>&amp;id=<?=$i;?>"><img src="./themes/<?= $g['theme']; ?>/images/icons/icon_e.gif" alt="" width="17" height="17" border="0"/></a>
-			&nbsp;<a href="services_dnsmasq.php<?=$instanceParam;?>&amp;act=del&amp;type=doverride&amp;id=<?=$i;?>" onclick="return confirm('<?=gettext("Do you really want to delete this domain override?");?>')"><img src="./themes/<?= $g['theme']; ?>/images/icons/icon_x.gif" alt="" width="17" height="17" border="0"/></a></td>
+		<td valign="middle" nowrap="nowrap" class="list"> <a href="services_dnsmasq_domainoverride_edit.php?<?=$instanceParam;?>id=<?=$i;?>"><img src="./themes/<?= $g['theme']; ?>/images/icons/icon_e.gif" alt="" width="17" height="17" border="0"/></a>
+			&nbsp;<a href="services_dnsmasq.php?<?=$instanceParam;?>act=del&amp;type=doverride&amp;id=<?=$i;?>" onclick="return confirm('<?=gettext("Do you really want to delete this domain override?");?>')"><img src="./themes/<?= $g['theme']; ?>/images/icons/icon_x.gif" alt="" width="17" height="17" border="0"/></a></td>
 	</tr>
 	<?php $i++; endforeach;
 		if ($i == 0) echo "<tr><td></td></tr>"; ?>
