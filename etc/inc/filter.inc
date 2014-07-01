@@ -2314,7 +2314,7 @@ function filter_generate_user_rule($rule) {
 			case 'cs5': $aline['dscp'] = " dscp 40 "; break;
 			case 'cs6': $aline['dscp'] = " dscp 48 "; break;
 			case 'cs7': $aline['dscp'] = " dscp 56 "; break;
-			default:    $aline['dscp'] = " dscp " . $rule['dscp'] . " "; break;
+			default:    $aline['dscp'] = " dscp " . preg_replace('/\s.*$/', '', $rule['dscp']) . " "; break;
 		}
 	}
 	if (!empty($rule['vlanprio']) && ($rule['vlanprio'] != "none"))
@@ -3262,7 +3262,7 @@ function filter_tdr_hour($schedule) {
 	$now = strtotime("now");
 	if($g['debug'])
 		log_error("[TDR DEBUG] S: $starting_time E: $ending_time N: $now");
-	if($now >= $starting_time and $now <= $ending_time)
+	if($now >= $starting_time and $now < $ending_time)
 		return true;
 	return false;
 }

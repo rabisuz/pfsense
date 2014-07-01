@@ -145,7 +145,7 @@ function stop_service($name) {
 
 				if(!($service['rcfile'] or $service['stopcmd'])) {
 					if(is_process_running("{$service['executable']}"))
-						mwexec("/usr/bin/killall {$service['executable']}");
+						killbyname($service['executable']);
 					return;
 				}
 				break;
@@ -153,8 +153,8 @@ function stop_service($name) {
 		}
 	}
 	/* finally if we get here lets simply kill the service name */
-	if(is_process_running("{$name}"))
-		mwexec("/usr/bin/killall {$name}");
+	if(is_process_running(escapeshellarg($name)))
+		killbyname(escapeshellarg($name));
 }
 
 function restart_service($name) {
@@ -555,7 +555,7 @@ function service_control_start($name, $extras) {
 			services_radvd_configure();
 			break;
 		case 'captiveportal':
-			$zone = $extras['zone'];
+			$zone = htmlspecialchars($extras['zone']);
 			captiveportal_init_webgui_zonename($zone);
 			break;
 		case 'ntpd':
@@ -592,9 +592,9 @@ function service_control_start($name, $extras) {
 			vpn_ipsec_force_reload();
 			break;
 		case 'openvpn':
-			$vpnmode = isset($extras['vpnmode']) ? $extras['vpnmode'] : $extras['mode'];
+			$vpnmode = isset($extras['vpnmode']) ? htmlspecialchars($extras['vpnmode']) : htmlspecialchars($extras['mode']);
 			if (($vpnmode == "server") || ($vpnmode == "client")) {
-				$id = isset($extras['vpnid']) ? $extras['vpnid'] : $extras['id'];
+				$id = isset($extras['vpnid']) ? htmlspecialchars($extras['vpnid']) : htmlspecialchars($extras['id']);
 				$configfile = "{$g['varetc_path']}/openvpn/{$vpnmode}{$id}.conf";
 				if (file_exists($configfile))
 					openvpn_restart_by_vpnid($vpnmode, $id);
@@ -616,7 +616,7 @@ function service_control_stop($name, $extras) {
 			killbypid("{$g['varrun_path']}/radvd.pid");
 			break;
 		case 'captiveportal':
-			$zone = $extras['zone'];
+			$zone = htmlspecialchars($extras['zone']);
 			killbypid("{$g['varrun_path']}/lighty-{$zone}-CaptivePortal.pid");
 			killbypid("{$g['varrun_path']}/lighty-{$zone}-CaptivePortal-SSL.pid");
 			break;
@@ -668,9 +668,9 @@ function service_control_stop($name, $extras) {
 			exec("killall -9 racoon");
 			break;
 		case 'openvpn':
-			$vpnmode = $extras['vpnmode'];
+			$vpnmode = htmlspecialchars($extras['vpnmode']);
 			if (($vpnmode == "server") or ($vpnmode == "client")) {
-				$id = $extras['id'];
+				$id = htmlspecialchars($extras['id']);
 				$pidfile = "{$g['varrun_path']}/openvpn_{$vpnmode}{$id}.pid";
 				killbypid($pidfile);
 			}
@@ -691,7 +691,7 @@ function service_control_restart($name, $extras) {
 			services_radvd_configure();
 			break;
 		case 'captiveportal':
-			$zone = $extras['zone'];
+			$zone = htmlspecialchars($extras['zone']);
 			killbypid("{$g['varrun_path']}/lighty-{$zone}-CaptivePortal.pid");
 			killbypid("{$g['varrun_path']}/lighty-{$zone}-CaptivePortal-SSL.pid");
 			captiveportal_init_webgui_zonename($zone);
@@ -732,9 +732,9 @@ function service_control_restart($name, $extras) {
 			vpn_ipsec_force_reload();
 			break;
 		case 'openvpn':
-			$vpnmode = $extras['vpnmode'];
+			$vpnmode = htmlspecialchars($extras['vpnmode']);
 			if ($vpnmode == "server" || $vpnmode == "client") {
-				$id = $extras['id'];
+				$id = htmlspecialchars($extras['id']);
 				$configfile = "{$g['varetc_path']}/openvpn/{$vpnmode}{$id}.conf";
 				if (file_exists($configfile))
 					openvpn_restart_by_vpnid($vpnmode, $id);
