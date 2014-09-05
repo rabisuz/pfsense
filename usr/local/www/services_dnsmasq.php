@@ -238,7 +238,7 @@ if (!$do_reload_service) {
 	if ($instance['custom_options']) {
 		$args = '';
 		foreach (preg_split('/\s+/', $instance['custom_options']) as $c)
-			$args .= "--$c ";
+			$args .= escapeshellarg("--{$c}") . " ";
 		exec("/usr/local/sbin/dnsmasq --test $args", $output, $rc);
 		if ($rc != 0)
 			$input_errors[] = gettext("Invalid custom options");
